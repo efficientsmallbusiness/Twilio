@@ -1,0 +1,120 @@
+var HEADER_ROW = 1;
+
+
+var ACTIVE_SHEET;
+var getSheet = function () {
+  return ACTIVE_SHEET ? ACTIVE_SHEET : SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+}
+
+
+function onOpen() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const menuEntries = [];
+
+  if (!getProperty_("isSetup")) {
+    menuEntries.push({ name: "Authorize", functionName: "triggerAuth_" });
+    menuEntries.push({ name: "Setup", functionName: "setup" });
+    menuEntries.push(null);
+  }
+
+  menuEntries.push({ name: "Send selected", functionName: "sendToSelected" });
+ // menuEntries.push({ name: "Send all", functionName: "sendToAll" });
+
+  ss.addMenu("Send Text", menuEntries);
+}
+
+
+/**
+ * Triggers auth flow
+ */
+function triggerAuth_() { }
+
+/**
+ * Prevent the Authorize and Setup menu items from appearing every time the sheet is opened
+ */
+function setup() {
+  setProperty_('isSetup',1);
+  toast_('Setup complete!');
+}
+
+var l_ = function (string) {
+  Logger.log(string);
+}
+
+
+
+var SCRIPT_PROP;
+var scriptProp = function () {
+  var prop;
+  prop = SCRIPT_PROP ? SCRIPT_PROP : PropertiesService.getScriptProperties();
+  return prop;
+}
+
+
+
+
+/**
+* @param key {string}
+* @return {string}
+*/
+var getProperty_ = function (key) {
+  return scriptProp().getProperty(key);
+}
+
+
+
+
+/**
+* @param key {string}
+* @param value {string}
+* @return {string}
+*/
+var setProperty_ = function (key, value) {
+  scriptProp().setProperty(key, value);
+}
+
+
+function reset_() {
+  deleteProperties_();
+  SpreadsheetApp.getActiveSpreadsheet().toast('Settings have been disabled');
+}
+
+
+
+/**
+* deleteProperties
+*
+* Deletes all script-level properties
+*/
+function deleteProperties_() {
+  scriptProp().deleteAllProperties();
+}
+
+
+var alert_ = function (string) {
+  SpreadsheetApp.getUi().alert(string);
+}
+
+var toast_ = function (string) {
+  SpreadsheetApp.getActiveSpreadsheet().toast(string);
+}
+
+
+
+/**
+ * Convert spreadsheet data to object
+ * @return {object} 
+ *         object: array as an object
+ *         valuesArray: Array values without the header row
+ *         normalizedHeader: Header with normalized values
+ *         header: header with unchanged values
+ */
+var getData_ = function (r) { function n(r, n) { var t = function (r) { for (var n = [], t = 0; t < r.length; ++t)n.push(a(r[t])); return n }(n); return { object: e(r, t), valuesArray: r, normalizedHeader: t, header: n } } function t(r) { return r.length < 2 } function e(r, n) { for (var t = [], e = 0; e < r.length; ++e) { for (var a = {}, o = !1, f = 0; f < r[e].length; ++f) { var i = r[e][f]; u(i) ? a[n[f]] = "" : (a[n[f]] = i, o = !0) } o && t.push(a) } return t } function a(r) { for (var n, t = "", e = !1, a = 0; a < r.length; ++a) { var u = r[a]; " " == u && t.length > 0 ? e = !0 : ((n = u) >= "A" && n <= "Z" || n >= "a" && n <= "z" || o(n)) && (0 == t.length && o(u) || (e ? (e = !1, t += u.toUpperCase()) : t += u.toLowerCase())) } return t } function u(r) { return "string" == typeof r && "" == r } function o(r) { return r >= "0" && r <= "9" } return r.fromSheet = function (r, e) { var a = r.getDataRange().getValues(); if (t(a)) return {}; var u = e || 1; return n(a.slice(u), a[u - 1]) }, r.fromArray = function (r, e) { if (t(r)) return {}; var a = e || 1; return n(r.slice(a), r[a - 1]) }, r }(getData_ || {});
+
+
+/**
+ * @return {string} Normalized text string
+ */
+var normalizeString_ = function (i) { for (var n = "", t = !1, r = 0; r < i.length; ++r) { var e = i[r]; " " == e && n.length > 0 ? t = !0 : isAlnum_(e) && (0 == n.length && isDigit_(e) || (t ? (t = !1, n += e.toUpperCase()) : n += e.toLowerCase())) } return n };
+var isAlnum_ = function (i) { return i >= "A" && i <= "Z" || i >= "a" && i <= "z" || isDigit_(i) };
+var isDigit_ = function (i) { return i >= "0" && i <= "9" };
