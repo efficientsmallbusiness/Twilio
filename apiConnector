@@ -1,0 +1,63 @@
+/**
+ * Send text message with Twilio
+ * Resource: https://www.twilio.com/blog/2016/02/send-sms-from-a-google-spreadsheet.html
+ * @param {string} recipientPhone The recipients 10 digit phone number
+ * @param {string} body The message body
+ */
+function sendSms_(recipientPhone, body) {
+  // Check if the "to" number exists and that it has enough digits
+  if (!recipientPhone || recipientPhone.length < 10) return;
+
+  const acctSid = 'ABC123';
+  const authToken = 'a1b2c3d4';
+  const twilioNumber = '13605555555';
+  const messages_url = "https://api.twilio.com/2010-04-01/Accounts/" + acctSid + "/Messages.json";
+
+  const payload = {
+    "To": recipientPhone,
+    "Body": body,
+    "From": twilioNumber
+  };
+
+  const options = {
+    "method": "post",
+    "payload": payload,
+    "muteHttpExceptions": true
+  };
+
+  options.headers = {
+    "Authorization": "Basic " + Utilities.base64Encode(acctSid + ":" + authToken)
+  };
+
+
+  try {
+    let response = UrlFetchApp.fetch(messages_url, options);
+    const parse = JSON.parse(response);
+    
+    // Check for errors
+    if (parse.error_message || !parse.body) {
+      const sendDate = parse.date_sent || new Date();
+      const error = parse.error_message || JSON.stringify(parse);
+
+      l_('Twilio error: \n\n'
+        + 'Date Sent:' + sendDate + '\n'
+        + 'Recipient: ' + recipientPhone + '\n'
+        + 'Sender: ' + twilioNumber + '\n'
+        + 'Error Message: ' + error
+      );
+      return;
+    }
+
+return true;
+
+  } catch (e) {
+    l_('Server error: \n\n'
+      + 'Date Sent:' + sendDate + '\n'
+      + 'Recipient: ' + recipientPhone + '\n'
+      + 'Sender: ' + twilioNumber + '\n'
+      + 'Error Message: ' + e
+    );
+    return;
+  }
+
+}
