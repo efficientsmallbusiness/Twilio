@@ -1,0 +1,79 @@
+var sendToSelected = function () {
+  var ui = SpreadsheetApp.getUi();
+  var response = ui.alert('Send only to selected clients?', ui.ButtonSet.YES_NO);
+  if (response === ui.Button.YES) {
+    sendTextMessages_();
+  }
+}
+
+var sendToAll = function () {
+  var ui = SpreadsheetApp.getUi();
+  var response = ui.alert('Send to all clients?', ui.ButtonSet.YES_NO);
+  if (response === ui.Button.YES) {
+    sendTextMessages_(true);
+  }
+}
+
+
+/**
+ * Updates the "Send" and "Date Sent" columns
+ * @param {object} sheet The active spreadsheet
+ * @param {array} header An array containing the header titles
+ * @param {number} rowNumber The row to update
+ * @param {boolean} success True if text message was sent successfully
+ */
+var updateSheetRow = function (sheet, header, rowNumber, success) {
+  sheet.getRange(rowNumber, header.indexOf('Send') + 1).setValue(false);
+  sheet.getRange(rowNumber, header.indexOf('Date Sent') + 1).setValue(success ? new Date() : 'Error');
+  SpreadsheetApp.flush();
+}
+
+/**
+ * Get spreadsheet data
+ * Send template text message 
+ * @param {boolean} sendToAll Bypasses sending criteria
+ */
+var sendTextMessages_ = function (sendToAll) {
+  const sheet = getSheet(); // The first tab in the spreadsheet
+  const data = getData_.fromSheet(sheet, HEADER_ROW);
+  const vals = data.object;
+  const header = data.header;
+  const txt = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('textMessage').getValue();
+
+  if (!vals) {
+    toast_('No data');
+    return;
+  };
+
+
+  vals.forEach(function (rowData, i) {
+
+    // The phoneNumber and result must exist 
+    if (rowData.phoneNumber && rowData.result) {
+      var message;
+      var success;
+      var rowNumber = i + 1 + HEADER_ROW;
+
+      // Replace placeholder tags with cell values
+      header.forEach(function (colTitle) {
+        let search = '{' + colTitle + '}';
+        let replacement = rowData[normalizeString_(colTitle)];
+        if (txt.indexOf(search) > -1) { // Check if search string exists in text
+          message = txt.toString().replace(search, replacement);
+        }
+      })
+
+      if (!sendToAll) {
+        if (rowData.send) {
+          // Send text
+          updateSheetRow(sheet, header, rowNumber, sendSms_(rowData.phoneNumber.toString(), message));
+        }
+      } else {
+        updateSheetRow(sheet, header, rowNumber, sendSms_(rowData.phoneNumber.toString(), message));
+      }
+    }
+  });
+
+  toast_('Complete!');
+}
+
